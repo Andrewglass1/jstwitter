@@ -1,0 +1,87 @@
+#Iteration 5
+#  Once we have pulled our array of followers from Twitter, we can push the data through another API to grab some data.  Lets tap into Klout.com- a site that scores the influence of one's social media presence- to see which of our followers are the most infleuncial
+
+
+#Step 0: requirements
+# This iteration requires a rubygem- 'klout' along with an API key
+
+require 'klout'
+@k = Klout::API.new('w7cd26nt27pzgy4gj7waruw2') #, {:format => 'xml', :secure => true})
+
+#step 1- Klout around
+# lets loop through our list of friends to find everyone's klout score.  create a hash to store this information.
+# for your friend list from iteration 2, take each user name and apply the method 'klout' to retreive  the klout score
+
+# you'll notice when we run @k.klout(friend), score comes back in an odd format
+#heres what we get back:
+#  {"status"=>200, "users"=>[{"twitter_screen_name"=>"mikec", "kscore"=>48.38}]}
+#whoah!  Lets break this down.  This element is a hash with 2 keys: 'status' and 'users'
+# the key to users holds our data, so we apply ["users"] to extract it but you'll notice it is a array of hashes(with only one element)
+# apply [0] to grab the first (and only) hash in that array.  Now we can apply ["kscore"] to grab the score
+# each score (the hash's value) is put into an array with its corresponding user name (the hash's key)
+
+  def klout_around
+    @klouthash = Hash.new
+    friends = @client.friends
+    #make a manual array to test this out
+    #friends= ["mikec","melanieeeg"]
+    friends.each do |friend|
+      @klouthash[friend] = @k.klout(friend)["users"][0]["kscore"]
+    end
+  end
+
+# step 2- printing and sorting
+# now lets try to take a look at the user names in an order where we can see who is the most influencial
+# Lets take our hash and sort it  by the value.  note we must do this in reverse so the highest scores are printed first
+
+  def print_klouts
+    klout_around
+    @klouthash = @klouthash.sort_by {|key, value| value}.reverse
+      @klouthash.each{|key, value| puts "#{key} has a clout score #{value}"}
+  end
+
+# step 3- set a threshold
+#great!  now lets let the user set a threshold to determine what should be deemed 'popular'
+#first we run our 'klout_around' method to take everyones klout score
+# prompt the user to input a threshold number.
+# next, take each user name and test if their score is above that threshold.  If it is, lets put in in out newly created hash, '@popularkids'
+#finally loop through each user in @popularkids and print it's value
+
+
+  def find_poppies
+    klout_around
+    puts "enter a min klout score to judge popularity"
+    minscore = gets.to_i
+    @popularkids = Hash.new
+    @klouthash.each do |key, value|
+      if value > minscore
+        @popularkids[key] = value
+      end
+    end
+    @popularkids.each{|key, value| puts "#{key} is popular with a #{value}"}
+  end
+
+
+#step 4- spam the influencers!
+#ok, now we've identified who we consider to be influencial.  What should we do next.... SPAM them
+# first, lets run 'find_poppies' to see who is influencial 
+# next, print the number of 'popular' followers to the user and ask them if they'd like to spam them
+#if they do, ask what message should be sent
+#then for each follower, send them the message
+
+
+  def spam_populars
+    find_poppies
+    puts "you follow #{@popularkids.length} popular kids.  type 'yes' to spam them?"
+    answer = gets.chomp
+    if answer == "yes"
+      puts "what do you want to spam them with?"
+      message = gets.chomp
+      @popularkids.each do |follower|
+        follower = follower[0]
+        dm(follower, message)
+      end
+    else
+      "you are kind"
+    end
+  end
